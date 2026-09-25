@@ -1,8 +1,6 @@
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const express = require('express');
 const dotenv = require('dotenv');
-const play = require('play-dl');
 
 dotenv.config();
 
@@ -16,36 +14,32 @@ const client = new Client({
     ]
 });
 
-// إعداد خادم الويب للداشبورد وإبقاء البوت مستيقظاً
+// إعداد خادم الويب للداشبورد وإبقاء البوت تعمل 24/7
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
     res.send(`
         <html style="background:#0f172a; color:#f8fafc; font-family:sans-serif; text-align:center; padding-top:50px;">
-            <h1>🤖 Discord Bot Master Dashboard</h1>
+            <h1>🤖 Master Discord Bot Dashboard</h1>
             <p>Status: <span style="color:#22c55e;">Online & Operational 24/7</span></p>
-            <p>Developed for Arthur & Managed via AI Coordination</p>
+            <p>Owned by Arthur</p>
         </html>
     `);
 });
 
-app.listen(PORT, () => console.log(`Dashboard listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 
-// صلاحيات مالك البوت الخاص (صلاحيات VIP)
+// صلاحيات مالك البوت الخاص
 const OWNER_ID = process.env.OWNER_ID || ""; 
 
-// بيانات الألعاب والستريك
+// خريطة الستريك
 const streaks = new Map();
 
-// تسجيل أوامر الـ Slash Commands
+// تسجيل أوامر Slash Commands
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
     new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
-    new SlashCommandBuilder()
-        .setName('play')
-        .setDescription('تشغيل أغنية في الروم الصوتي')
-        .addStringOption(option => option.setName('query').setDescription('اسم الأغنية أو رابط يوتيوب').setRequired(true)),
     new SlashCommandBuilder()
         .setName('clear')
         .setDescription('مسح عدد معين من الرسائل (أدمن)')
@@ -62,7 +56,6 @@ client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setActivity('Managing Servers | /ping');
 
-    // تسجيل الأوامر عالمياً لكل السيرفرات
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
         await rest.put(
@@ -75,25 +68,22 @@ client.once('ready', async () => {
     }
 });
 
-// التعامل مع أوامر Slash Commands
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
     const { commandName } = interaction;
 
-    // 1. أمر فحص الاستجابة
     if (commandName === 'ping') {
         return interaction.reply({ content: `🏓 Pong! WebSocket Latency: **${client.ws.ping}ms**`, ephemeral: true });
     }
 
-    // 2. بطاقة البروفايل والستريك
     if (commandName === 'profile') {
         const userId = interaction.user.id;
         const userStreak = streaks.get(userId) || 0;
         const isOwner = userId === OWNER_ID;
 
         const profileEmbed = new EmbedBuilder()
-            .setColor(isOwner ? '#gold' : '#0099ff')
+            .setColor(isOwner ? '#FFD700' : '#0099ff')
             .setTitle(`👤 البروفايل الشخصي: ${interaction.user.username}`)
             .setThumbnail(interaction.user.displayAvatarURL())
             .addFields(
@@ -106,44 +96,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [profileEmbed] });
     }
 
-    // 3. تشغيل الأغاني والصوتيات
-    if (commandName === 'play') {
-        const query = interaction.options.getString('query');
-        const voiceChannel = interaction.member.voice.channel;
-
-        if (!voiceChannel) {
-            return interaction.reply({ content: '❌ يجب أن تكون متواجدًا في روم صوتي أولاً!', ephemeral: true });
-        }
-
-        await interaction.deferReply();
-
-        try {
-            const connection = joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: interaction.guild.id,
-                adapterCreator: interaction.guild.voiceAdapterCreator,
-            });
-
-            const ytInfo = await play.search(query, { limit: 1 });
-            if (!ytInfo || ytInfo.length === 0) {
-                return interaction.editReply('❌ لم يتم العثور على نتائج للبحث.');
-            }
-
-            const stream = await play.stream(ytInfo[0].url);
-            const resource = createAudioResource(stream.stream, { inputType: stream.type });
-            const player = createAudioPlayer();
-
-            player.play(resource);
-            connection.subscribe(player);
-
-            return interaction.editReply(`🎶 يتم الآن تشغيل: **${ytInfo[0].title}** في روم ${voiceChannel.name}`);
-        } catch (err) {
-            console.error(err);
-            return interaction.editReply('⚠️ حدث خطأ أثناء محاولة تشغيل الصوت.');
-        }
-    }
-
-    // 4. مسح الرسائل (إدارة)
     if (commandName === 'clear') {
         if (!interaction.member.permissions.has('ManageMessages')) {
             return interaction.reply({ content: '❌ ليس لديك صلاحية مسح الرسائل!', ephemeral: true });
@@ -153,7 +105,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: `🧹 تم مسح **${amount}** رسالة بنجاح.`, ephemeral: true });
     }
 
-    // 5. حظر عضو (إدارة)
     if (commandName === 'ban') {
         if (!interaction.member.permissions.has('BanMembers')) {
             return interaction.reply({ content: '❌ ليس لديك صلاحية حظر الأعضاء!', ephemeral: true });
@@ -163,7 +114,6 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: `🔨 تم حظر العضو **${target.tag}** بنجاح من السيرفر.` });
     }
 
-    // 6. لعبة الأعلام
     if (commandName === 'flag-game') {
         const flags = [
             { country: 'السعودية', flag: '🇸🇦' },
@@ -192,7 +142,6 @@ client.on('interactionCreate', async interaction => {
         });
     }
 
-    // 7. لوحة المالك الخاصة
     if (commandName === 'owner-panel') {
         if (interaction.user.id !== OWNER_ID) {
             return interaction.reply({ content: '🔒 هذا الأمر مخصص لمالك البوت فقط!', ephemeral: true });
