@@ -14,7 +14,6 @@ const client = new Client({
     ]
 });
 
-// إعداد خادم الويب للداشبورد وإبقاء البوت تعمل 24/7
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -30,13 +29,9 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 
-// صلاحيات مالك البوت الخاص
 const OWNER_ID = process.env.OWNER_ID || ""; 
-
-// خريطة الستريك
 const streaks = new Map();
 
-// تسجيل أوامر Slash Commands
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
     new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
