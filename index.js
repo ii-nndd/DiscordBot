@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
         <html style="background:#0f172a; color:#f8fafc; font-family:sans-serif; text-align:center; padding-top:50px;">
             <h1>🤖 ND • ARTHUR BOT - Master Dashboard</h1>
             <p>Status: <span style="color:#22c55e;">Online & Operational 24/7</span></p>
-            <p>Games Suite & Moderation: Active</p>
+            <p>Chill & Games Suite: Active</p>
             <p>Owned by Arthur</p>
         </html>
     `);
@@ -33,16 +33,18 @@ app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 const OWNER_ID = process.env.OWNER_ID || ""; 
 const VOICE_CHANNEL_ID = process.env.CHANNEL_ID || "";
 
-// تسجيل الأوامر الشاملة (مع إضافة أمر help هنا في اللستة)
+// تسجيل الأوامر الشاملة (مع الأوامر الجديدة الخاصة بالجو الرايق)
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
-    new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
+    new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والرتبة الخاصة'),
     new SlashCommandBuilder().setName('help').setDescription('عرض قائمة الأوامر والمساعدة'),
-    // الألعاب الفردية والمرح
+    // ألعاب الونسة والسوالف
     new SlashCommandBuilder().setName('كت').setDescription('سؤال كت تويت عشوائي وممتع'),
+    new SlashCommandBuilder().setName('صراحة').setDescription('سؤال صراحة وجريء لفتح السوالف'),
+    new SlashCommandBuilder().setName('لطيف').setDescription('كلمة أو عبارة لطيفة تروق المزاج'),
     new SlashCommandBuilder().setName('لغز').setDescription('حل اللغز واختبر ذكاءك'),
     new SlashCommandBuilder().setName('رياضيات').setDescription('تحدي العمليات الحسابية السريعة'),
-    new SlashCommandBuilder().setName('عقاب').setDescription('عقاب عشوائي للمتحدي'),
+    new SlashCommandBuilder().setName('عقاب').setDescription('عقاب عشوائي خفيف'),
     new SlashCommandBuilder().setName('نکته').setDescription('اضحك مع نكتة جديدة'),
     // أوامر الإدارة
     new SlashCommandBuilder()
@@ -58,7 +60,7 @@ const commands = [
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('🎮 Games Suite | /help');
+    client.user.setActivity('☕ Chill & Games | /help');
 
     if (VOICE_CHANNEL_ID) {
         const channel = await client.channels.fetch(VOICE_CHANNEL_ID).catch(() => null);
@@ -106,7 +108,7 @@ client.on('interactionCreate', async interaction => {
             .setThumbnail(interaction.user.displayAvatarURL())
             .addFields(
                 { name: '🔥 الستريك اليومي', value: `0 أيام`, inline: true },
-                { name: '👑 الرتبة الخاصة', value: isOwner ? 'مالك البوت (Bot Owner VIP)' : 'عضو مجتمع', inline: true }
+                { name: '👑 الرتبة الخاصة', value: isOwner ? 'مالك البوت (Bot Owner VIP)' : 'عضو مميز', inline: true }
             )
             .setFooter({ text: 'ND • ARTHUR BOT' })
             .setTimestamp();
@@ -114,34 +116,57 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [profileEmbed] });
     }
 
-    // أمر المساعدة (Help)
+    // أمر المساعدة (Help) المحدث
     if (commandName === 'help') {
         const helpEmbed = new EmbedBuilder()
             .setColor('#7c3aed')
             .setTitle('📜 قائمة أوامر ND • ARTHUR BOT')
-            .setDescription('هذه هي قائمة الأوامر المتاحة حالياً في البوت والمقسّمة لتنظيم سيرفرك:')
+            .setDescription('أوامر السوالف والونسة المتاحة في سيرفركم الرايق:')
             .addFields(
-                { name: '🎮 الألعاب والمرح', value: '`/كت` - سؤال كت تويت عشوائي\n`/لغز` - حل الألغاز واختبر ذكاءك\n`/رياضيات` - تحدي العمليات السريعة\n`/عقاب` - عقاب عشوائي ممتع\n`/نکته` - اضحك مع نكتة جديدة', inline: false },
-                { name: '👤 البروفايل', value: '`/profile` - عرض بطاقة بروفايلك والرتبة الخاصة', inline: false },
-                { name: '🛠️ أوامر الإدارة', value: '`/clear` - مسح الرسائل بسرعة\n`/ban` - حظر عضو من السيرفر\n`/owner-panel` - لوحة تحكم المالك', inline: false },
-                { name: '🌐 لوحة التحكم', value: 'يمكنك الدخول إلى رابط ريندر الخاص بالبوت لرؤية داشبورد الويب المباشر!', inline: false }
+                { name: '☕ ألعاب وسوالف ونسة', value: '`/كت` - سؤال كت تويت\n`/صراحة` - أسئلة صراحة وجريئة\n`/لطيف` - عبارات تروق المزاج\n`/لغز` - حل الألغاز\n`/رياضيات` - تحدي السريعة\n`/عقاب` - عقاب خفيف\n`/نکته` - نكتة سريعة', inline: false },
+                { name: '👤 البروفايل', value: '`/profile` - عرض بطاقتك', inline: false },
+                { name: '🛠️ الإدارة', value: '`/clear` - مسح الرسائل\n`/ban` - حظر\n`/owner-panel` - لوحة المالك', inline: false }
             )
-            .setFooter({ text: 'ND • ARTHUR BOT - Developed by Arthur' })
+            .setFooter({ text: 'ND • ARTHUR BOT - Chill Vibe' })
             .setTimestamp();
 
         return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
     }
 
-    // الألعاب
+    // الألعاب والونسة
     if (commandName === 'كت') {
         const cutTweets = [
-            'لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟',
-            'وش أكثر صفه تكرهها بالشخص اللي قدامك؟',
-            'موقف محرج صار بحياتك وما تقدر تنساه؟',
-            'لو خيروك بين العيش لوحدك في جزيرة أو مع شخص مزعج للأبد؟'
+            'لو عندك قدرة تمسح موقف محرج من ذاكرة الشخص الثاني، وش بيكون؟',
+            'أكثر صفه تعجبك في الشخص اللي جالس معك الحين؟',
+            'وش أكتر شيء تفضل تسوونه مع بعض بالسيرفر؟',
+            'لو سافرتم مع بعض لسفرة طويلة، وش أول وجهة تختارونها؟'
         ];
         const randomCut = cutTweets[Math.floor(Math.random() * cutTweets.length)];
-        const embed = new EmbedBuilder().setColor('#ff7675').setTitle('🎯 كت تويت').setDescription(randomCut);
+        const embed = new EmbedBuilder().setColor('#ff7675').setTitle('🎯 كت تويت رايق').setDescription(randomCut);
+        return interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'صراحة') {
+        const truths = [
+            'صراحة: متى آخر مرة ضحكت من قلبك بسبب شخص معك بالسيرفر؟',
+            'صراحة: هل تخبي عنه شيء دايم ولا صريح بكل أمورك؟',
+            'صراحة: وش أكثر كلمة أو جملة يقولها وتترك أثر حلو في خاطرك؟',
+            'صراحة: لو طلب منك تعزمه على مكان فخم، وين تأخذه؟'
+        ];
+        const randomTruth = truths[Math.floor(Math.random() * truths.length)];
+        const embed = new EmbedBuilder().setColor('#e84393').setTitle('💬 صراحة وشفافية').setDescription(randomTruth);
+        return interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'لطيف') {
+        const sweetWords = [
+            '✨ "وجود الأشخاص اللطيفين بحياتنا يخلي الأيام أبسط وأجمل بكثير."',
+            '☕ "روقان القعدة مع ناس تفهمك يسوى الدنيا وما فيها!"',
+            '🌟 "دايماً خلّي ابتسامتك هي عنوان يومك."',
+            '💫 "شكراً لأنك تخلي هالسيرفر مكان دافئ ومريح للجلوس فيه."'
+        ];
+        const randomSweet = sweetWords[Math.floor(Math.random() * sweetWords.length)];
+        const embed = new EmbedBuilder().setColor('#00b894').setTitle('🍃 لقطة لطيفة').setDescription(randomSweet);
         return interaction.reply({ embeds: [embed] });
     }
 
@@ -165,19 +190,19 @@ client.on('interactionCreate', async interaction => {
 
     if (commandName === 'عقاب') {
         const punishments = [
-            'عقابك: غيّر اسمك في الديسكورد إلى "متابع صامت" لمدة ساعة!',
-            'عقابك: اكتب في شات السيرفر "أنا أسعد شخص في العالم" 3 مرات.',
-            'عقابك: ممنوع تتحدث في الروم الصوتي لمدة 10 دقائق!'
+            'عقابك: تعترف بشيء جميل تحبه في الطرف الثاني!',
+            'عقابك: تعبر عن شعورك بجملة طريفة ومضحكة.',
+            'عقابك: ممنوع تتكلم فصوتك 5 دقائق وتكتب بالشات بس!'
         ];
         const p = punishments[Math.floor(Math.random() * punishments.length)];
-        const embed = new EmbedBuilder().setColor('#d63031').setTitle('🎲 عقاب عشوائي').setDescription(p);
+        const embed = new EmbedBuilder().setColor('#d63031').setTitle('🎲 عقاب خفيف').setDescription(p);
         return interaction.reply({ embeds: [embed] });
     }
 
     if (commandName === 'نکته') {
         const jokes = [
             'واحد يزرع مسمار بالارض ليش؟ يبي يطلع شجرة سياكل!',
-            'محشش سألوه: وش رايك في الزواج المبكر؟ قال: الساعة كم؟',
+            'محشش سألوه: وش رايك في الزواج المبكر؟ قال: يعني الساعة كم؟',
             'واحد غبي ضاع تلفونه، راح يبلغ الشرطة قالوا له الشرطة بنطلعه من تحت الأرض، قال: لا، أنا ضيعته فوق السطح!'
         ];
         const j = jokes[Math.floor(Math.random() * jokes.length)];
