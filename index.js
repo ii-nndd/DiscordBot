@@ -33,10 +33,11 @@ app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 const OWNER_ID = process.env.OWNER_ID || ""; 
 const VOICE_CHANNEL_ID = process.env.CHANNEL_ID || "";
 
-// تسجيل الأوامر الشاملة (بدون الموسيقى)
+// تسجيل الأوامر الشاملة (مع إضافة أمر help هنا في اللستة)
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
     new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
+    new SlashCommandBuilder().setName('help').setDescription('عرض قائمة الأوامر والمساعدة'),
     // الألعاب الفردية والمرح
     new SlashCommandBuilder().setName('كت').setDescription('سؤال كت تويت عشوائي وممتع'),
     new SlashCommandBuilder().setName('لغز').setDescription('حل اللغز واختبر ذكاءك'),
@@ -57,9 +58,8 @@ const commands = [
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('🎮 Games Suite | ألعاب وتحديات');
+    client.user.setActivity('🎮 Games Suite | /help');
 
-    // الانضمام للبث الصوتي للبقاء متصلاً 24/7 (بدون موسيقى لتجنب المشاكل)
     if (VOICE_CHANNEL_ID) {
         const channel = await client.channels.fetch(VOICE_CHANNEL_ID).catch(() => null);
         if (channel && channel.isVoiceBased()) {
@@ -114,6 +114,24 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [profileEmbed] });
     }
 
+    // أمر المساعدة (Help)
+    if (commandName === 'help') {
+        const helpEmbed = new EmbedBuilder()
+            .setColor('#7c3aed')
+            .setTitle('📜 قائمة أوامر ND • ARTHUR BOT')
+            .setDescription('هذه هي قائمة الأوامر المتاحة حالياً في البوت والمقسّمة لتنظيم سيرفرك:')
+            .addFields(
+                { name: '🎮 الألعاب والمرح', value: '`/كت` - سؤال كت تويت عشوائي\n`/لغز` - حل الألغاز واختبر ذكاءك\n`/رياضيات` - تحدي العمليات السريعة\n`/عقاب` - عقاب عشوائي ممتع\n`/نکته` - اضحك مع نكتة جديدة', inline: false },
+                { name: '👤 البروفايل', value: '`/profile` - عرض بطاقة بروفايلك والرتبة الخاصة', inline: false },
+                { name: '🛠️ أوامر الإدارة', value: '`/clear` - مسح الرسائل بسرعة\n`/ban` - حظر عضو من السيرفر\n`/owner-panel` - لوحة تحكم المالك', inline: false },
+                { name: '🌐 لوحة التحكم', value: 'يمكنك الدخول إلى رابط ريندر الخاص بالبوت لرؤية داشبورد الويب المباشر!', inline: false }
+            )
+            .setFooter({ text: 'ND • ARTHUR BOT - Developed by Arthur' })
+            .setTimestamp();
+
+        return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+    }
+
     // الألعاب
     if (commandName === 'كت') {
         const cutTweets = [
@@ -159,7 +177,7 @@ client.on('interactionCreate', async interaction => {
     if (commandName === 'نکته') {
         const jokes = [
             'واحد يزرع مسمار بالارض ليش؟ يبي يطلع شجرة سياكل!',
-            'محشش سألوه: وش رايك في الزواج المبكر؟ قال: يعني الساعة كم؟',
+            'محشش سألوه: وش رايك في الزواج المبكر؟ قال: الساعة كم؟',
             'واحد غبي ضاع تلفونه، راح يبلغ الشرطة قالوا له الشرطة بنطلعه من تحت الأرض، قال: لا، أنا ضيعته فوق السطح!'
         ];
         const j = jokes[Math.floor(Math.random() * jokes.length)];
