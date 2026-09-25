@@ -38,14 +38,14 @@ const streaks = new Map();
 let currentConnection = null;
 let audioPlayer = createAudioPlayer();
 
-// تسجيل الأوامر الشاملة (الموسيقى + الألعاب + الإدارة)
+// تسجيل الأوامر الشاملة
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
     new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
     new SlashCommandBuilder()
         .setName('play')
-        .setDescription('تشغيل أغنية أو فتح لوحة الموسيقى التفاعلية')
-        .addStringOption(option => option.setName('query').setDescription('اسم الأغنية أو رابط يوتيوب').setRequired(true)),
+        .setDescription('تشغيل أغنية أو رابط يوتيوب لوحة الموسيقى')
+        .addStringOption(option => option.setName('query').setDescription('رابط يوتيوب أو اسم الأغنية').setRequired(true)),
     // الألعاب الفردية والمرح
     new SlashCommandBuilder().setName('كت').setDescription('سؤال كت تويت عشوائي وممتع'),
     new SlashCommandBuilder().setName('لغز').setDescription('حل اللغز واختبر ذكاءك'),
@@ -122,7 +122,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [profileEmbed] });
         }
 
-        // لوحة الموسيقى
+        // لوحة الموسيقى المحسنة
         if (commandName === 'play') {
             const query = interaction.options.getString('query');
             const voiceChannel = interaction.member.voice.channel;
@@ -139,12 +139,19 @@ client.on('interactionCreate', async interaction => {
                     adapterCreator: interaction.guild.voiceAdapterCreator,
                 });
 
-                const ytInfo = await play.search(query, { limit: 1 });
-                if (!ytInfo || ytInfo.length === 0) {
-                    return interaction.editReply('❌ لم يتم العثور على نتائج مطابقة لبحثك.');
+                let videoUrl = query;
+                let videoTitle = query;
+
+                if (!query.startsWith('http')) {
+                    const ytInfo = await play.search(query, { limit: 1 });
+                    if (!ytInfo || ytInfo.length === 0) {
+                        return interaction.editReply('❌ لم يتم العثور على نتائج. جرب وضع رابط يوتيوب مباشر.');
+                    }
+                    videoUrl = ytInfo[0].url;
+                    videoTitle = ytInfo[0].title;
                 }
 
-                const stream = await play.stream(ytInfo[0].url);
+                const stream = await play.stream(videoUrl);
                 const resource = createAudioResource(stream.stream, { inputType: stream.type });
                 
                 audioPlayer.play(resource);
@@ -166,115 +173,74 @@ client.on('interactionCreate', async interaction => {
                 const musicEmbed = new EmbedBuilder()
                     .setColor('#10b981')
                     .setTitle('🎶 Panel de música / لوحة الموسيقى')
-                    .setDescription(`جاري تشغيل: **${ytInfo[0].title}**\n\nأهلاً بك في لوحة تحكم الأغاني الخاصة ببوت **ND • ARTHUR BOT**. استخدم الأزرار أدناه للتحكم الكامل!`)
+                    .setDescription(`جاري تشغيل: **${videoTitle}**\n\nتحكم بالأغنية عبر الأزرار أدناه!`)
                     .setFooter({ text: `طلب بواسطة: ${interaction.user.tag}` });
 
                 return interaction.editReply({ embeds: [musicEmbed], components: [row1, row2] });
             } catch (err) {
                 console.error(err);
-                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي.');
+                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي. تأكد من صحة الرابط.');
             }
         }
 
-        // قسم الألعاب والترفيه
+        // الألعاب
         if (commandName === 'كت') {
-            const cutTweets = [
-                'لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟',
-                'وش أكثر صفه تكرهها بالشخص اللي قدامك؟',
-                'لو خيروك تعيش بدون إنترنت أو بدون أصدقاء لمدة شهر، وش تختار؟',
-                'كلمة تقولها لنفسك قبل النوم دائماً؟'
-            ];
+            const cutTweets = ['لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟', 'وش أكثر صفه تكرهها بالشخص اللي قدامك؟'];
             const randomCut = cutTweets[Math.floor(Math.random() * cutTweets.length)];
             const embed = new EmbedBuilder().setColor('#ff7675').setTitle('🎯 كت تويت').setDescription(randomCut);
             return interaction.reply({ embeds: [embed] });
         }
 
         if (commandName === 'لغز') {
-            const riddles = [
-                { q: 'شيء يرفع شيئاً ثقيلاً ومع ذلك لا يقدر على مسمار؟', a: 'البحر' },
-                { q: 'ما هو البيت الذي ليس فيه أبواب ولا وخزات ولا أثاث؟', a: 'بيت الشعر' }
-            ];
-            const r = riddles[Math.floor(Math.random() * riddles.length)];
-            const embed = new EmbedBuilder().setColor('#fdcb6e').setTitle('🧩 لعبة الألغاز').setDescription(`**اللغز:** ${r.q}\n\n*(فكّر جيداً واكتب الإجابة بالأسفل!)*`);
+            const embed = new EmbedBuilder().setColor('#fdcb6e').setTitle('🧩 لعبة الألغاز').setDescription('ما هو الشيء الذي يرفع شيئاً ثقيلاً ومع ذلك لا يقدر على مسمار؟ (البحر)');
             return interaction.reply({ embeds: [embed] });
         }
 
         if (commandName === 'رياضيات') {
-            const num1 = Math.floor(Math.random() * 20) + 1;
-            const num2 = Math.floor(Math.random() * 20) + 1;
-            const embed = new EmbedBuilder().setColor('#0984e3').setTitle('🧮 تحدي الرياضيات').setDescription(`كم الناتج السريع لـ: **${num1} × ${num2}**؟\n\n*(أسرع شخص يكتب الإجابة بالشات يربح نقطة!)*`);
+            const n1 = Math.floor(Math.random() * 10) + 1;
+            const n2 = Math.floor(Math.random() * 10) + 1;
+            const embed = new EmbedBuilder().setColor('#0984e3').setTitle('🧮 تحدي الرياضيات').setDescription(`كم الناتج: **${n1} × ${n2}**؟`);
             return interaction.reply({ embeds: [embed] });
         }
 
         if (commandName === 'عقاب') {
-            const forfeits = [
-                'عقابك: غيّر اسمك في الديسكورد إلى "طباخ بطاطس" لمدة ساعة!',
-                'عقابك: أرسل آخر صورة في جهازك في الشات العام بدون تحيز!',
-                'عقابك: امدح شخص في السيرفر بكلمات غزل مضحكة!'
-            ];
-            const f = forfeits[Math.floor(Math.random() * forfeits.length)];
-            const embed = new EmbedBuilder().setColor('#d63031').setTitle('🎲 عقاب عشوائي').setDescription(f);
+            const embed = new EmbedBuilder().setColor('#d63031').setTitle('🎲 عقاب عشوائي').setDescription('عقابك: غير اسمك في الديسكورد إلى "متابع صامت" لمدة ساعة!');
             return interaction.reply({ embeds: [embed] });
         }
 
         if (commandName === 'نکته') {
-            const jokes = [
-                'واحد محشش يزرع مسمار بالارض ليش؟ يبي ي طلع شجرة سياكل!',
-                'مرة قروي دخل مكدونالدز قال: عندكم وجبة أطفال؟ قالوا: أيوه، قال: طيب عطوني واحد طفل جعان!',
-            ];
-            const j = jokes[Math.floor(Math.random() * jokes.length)];
-            const embed = new EmbedBuilder().setColor('#e17055').setTitle('😂 نكتة سريعة').setDescription(j);
+            const embed = new EmbedBuilder().setColor('#e17055').setTitle('😂 نكتة سريعة').setDescription('واحد يزرع مسمار بالارض ليش؟ يبي يطلع شجرة سياكل!');
             return interaction.reply({ embeds: [embed] });
         }
 
-        // أوامر الإدارة
+        // الإدارة
         if (commandName === 'clear') {
-            if (!interaction.member.permissions.has('ManageMessages')) {
-                return interaction.reply({ content: '❌ ليس لديك صلاحية مسح الرسائل!', ephemeral: true });
-            }
+            if (!interaction.member.permissions.has('ManageMessages')) return interaction.reply({ content: '❌ ليس لديك صلاحية!', ephemeral: true });
             const amount = interaction.options.getInteger('amount');
             await interaction.channel.bulkDelete(amount, true);
-            return interaction.reply({ content: `🧹 تم مسح **${amount}** رسالة بنجاح.`, ephemeral: true });
+            return interaction.reply({ content: `🧹 تم مسح ${amount} رسالة.`, ephemeral: true });
         }
 
         if (commandName === 'ban') {
-            if (!interaction.member.permissions.has('BanMembers')) {
-                return interaction.reply({ content: '❌ ليس لديك صلاحية حظر الأعضاء!', ephemeral: true });
-            }
+            if (!interaction.member.permissions.has('BanMembers')) return interaction.reply({ content: '❌ ليس لديك صلاحية!', ephemeral: true });
             const target = interaction.options.getUser('target');
             await interaction.guild.members.ban(target);
-            return interaction.reply({ content: `🔨 تم حظر العضو **${target.tag}** بنجاح من السيرفر.` });
+            return interaction.reply({ content: `🔨 تم حظر العضو بنجاح.` });
         }
 
         if (commandName === 'owner-panel') {
-            if (interaction.user.id !== OWNER_ID) {
-                return interaction.reply({ content: '🔒 هذا الأمر مخصص لمالك البوت فقط!', ephemeral: true });
-            }
-            return interaction.reply({ content: '👑 أهلاً بك يا مالك السيرفر! جميع أنظمة التحكم والألعاب مفعلة وجاهزة.', ephemeral: true });
+            if (interaction.user.id !== OWNER_ID) return interaction.reply({ content: '🔒 لمالك البوت فقط!', ephemeral: true });
+            return interaction.reply({ content: '👑 أهلاً بك يا مالك السيرفر والبووت!', ephemeral: true });
         }
     } 
     
     else if (interaction.isButton()) {
         const { customId } = interaction;
-        if (customId === 'music_pause') {
-            audioPlayer.pause();
-            return interaction.reply({ content: '⏸️ تم إيقاف الموسيقى مؤقتاً.', ephemeral: true });
-        }
-        if (customId === 'music_resume') {
-            audioPlayer.unpause();
-            return interaction.reply({ content: '▶️ تم استئناف الموسيقى.', ephemeral: true });
-        }
-        if (customId === 'music_stop') {
-            audioPlayer.stop();
-            return interaction.reply({ content: '⏹️ تم إيقاف مشغل الموسيقى وتفريغه.', ephemeral: true });
-        }
-        if (customId === 'music_disconnect') {
-            if (currentConnection) currentConnection.destroy();
-            return interaction.reply({ content: '🚪 تم فصل البوت عن الروم الصوتي.', ephemeral: true });
-        }
-        if (customId === 'music_queue') {
-            return interaction.reply({ content: '📜 قائمة الانتظار فارغة حالياً.', ephemeral: true });
-        }
+        if (customId === 'music_pause') { audioPlayer.pause(); return interaction.reply({ content: '⏸️ تم الإيقاف.', ephemeral: true }); }
+        if (customId === 'music_resume') { audioPlayer.unpause(); return interaction.reply({ content: '▶️ تم الاستئناف.', ephemeral: true }); }
+        if (customId === 'music_stop') { audioPlayer.stop(); return interaction.reply({ content: '⏹️ تم الإيقاف التام.', ephemeral: true }); }
+        if (customId === 'music_disconnect') { if (currentConnection) currentConnection.destroy(); return interaction.reply({ content: '🚪 تم الفصل.', ephemeral: true }); }
+        if (customId === 'music_queue') { return interaction.reply({ content: '📜 القائمة فارغة.', ephemeral: true }); }
     }
 });
 
