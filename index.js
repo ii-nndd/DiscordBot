@@ -122,7 +122,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [profileEmbed] });
         }
 
-        // لوحة الموسيقى المحسنة
+     // لوحة الموسيقى المحسنة والبديلة لتجنب أخطاء يوتيوب
         if (commandName === 'play') {
             const query = interaction.options.getString('query');
             const voiceChannel = interaction.member.voice.channel;
@@ -142,13 +142,18 @@ client.on('interactionCreate', async interaction => {
                 let videoUrl = query;
                 let videoTitle = query;
 
+                // إذا لم يكن رابطاً، نقوم بالبحث عبر يوتيوب بطريقة آمنة
                 if (!query.startsWith('http')) {
-                    const ytInfo = await play.search(query, { limit: 1 });
-                    if (!ytInfo || ytInfo.length === 0) {
-                        return interaction.editReply('❌ لم يتم العثور على نتائج. جرب وضع رابط يوتيوب مباشر.');
+                    const searchResults = await play.search(query, { limit: 1 });
+                    if (!searchResults || searchResults.length === 0) {
+                        return interaction.editReply('❌ لم يتم العثور على نتائج. جرب إدخال رابط يوتيوب مباشر.');
                     }
-                    videoUrl = ytInfo[0].url;
-                    videoTitle = ytInfo[0].title;
+                    videoUrl = searchResults[0].url;
+                    videoTitle = searchResults[0].title;
+                } else {
+                    // إذا كان رابطاً مباشراً، نجلب معلوماته
+                    const info = await play.video_basic_info(query);
+                    videoTitle = info.video_details.title;
                 }
 
                 const stream = await play.stream(videoUrl);
@@ -178,11 +183,10 @@ client.on('interactionCreate', async interaction => {
 
                 return interaction.editReply({ embeds: [musicEmbed], components: [row1, row2] });
             } catch (err) {
-                console.error(err);
-                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي. تأكد من صحة الرابط.');
+                console.error('Music Error:', err);
+                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي. تأكد من صحة الرابط أو جرب رابطاً آخر.');
             }
         }
-
         // الألعاب
         if (commandName === 'كت') {
             const cutTweets = ['لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟', 'وش أكثر صفه تكرهها بالشخص اللي قدامك؟'];
