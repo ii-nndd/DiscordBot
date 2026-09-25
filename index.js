@@ -122,7 +122,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [profileEmbed] });
         }
 
-// لوحة الموسيقى المستقرة والجديدة
+// لوحة الموسيقى المحدثة لتشغيل الروابط المباشرة وصاوندكلاود
         if (commandName === 'play') {
             const query = interaction.options.getString('query');
             const voiceChannel = interaction.member.voice.channel;
@@ -139,20 +139,18 @@ client.on('interactionCreate', async interaction => {
                     adapterCreator: interaction.guild.voiceAdapterCreator,
                 });
 
-                let videoUrl = query;
-                let videoTitle = query;
-
-                // إذا لم يكن رابطاً، سنستخدم البحث الآمن أو نوجه المستخدم لرابط مباشر
+                // التحقق من أن المدخل رابط مباشر أو دعم ساوندكلاود/روابط الصوت
+                let streamUrl = query;
                 if (!query.startsWith('http')) {
-                    const searchResults = await play.search(query, { limit: 1 }).catch(() => null);
-                    if (!searchResults || searchResults.length === 0) {
-                        return interaction.editReply('❌ عذراً، يوتيوب حظر البحث النصي. يرجى وضع **رابط يوتيوب مباشر** للأغنية وستحمل فوراً!');
-                    }
-                    videoUrl = searchResults[0].url;
-                    videoTitle = searchResults[0].title;
+                    return interaction.editReply('❌ عذراً، البحث النصي محظور. يرجى إدخال **رابط صوتي مباشر (MP3)** أو رابط **SoundCloud** لتشغيله بنجاح.');
                 }
 
-                const stream = await play.stream(videoUrl);
+                // استخدام play-dl للروابط الداعمة غير يوتيوب أو الروابط المباشرة
+                const stream = await play.stream(query).catch(() => null);
+                if (!stream) {
+                    return interaction.editReply('⚠️ تعذر تشغيل هذا الرابط. تأكد أنه رابط صوتي مباشر (مثل MP3) أو من منصة مدعومة.');
+                }
+
                 const resource = createAudioResource(stream.stream, { inputType: stream.type });
                 
                 audioPlayer.play(resource);
@@ -174,17 +172,15 @@ client.on('interactionCreate', async interaction => {
                 const musicEmbed = new EmbedBuilder()
                     .setColor('#10b981')
                     .setTitle('🎶 Panel de música / لوحة الموسيقى')
-                    .setDescription(`جاري تشغيل: **${videoTitle}**\n\nتحكم بالأغنية عبر الأزرار أدناه!`)
+                    .setDescription(`جاري تشغيل الصوت المباشر بنجاح!\n\nتحكم بالأغنية عبر الأزرار أدناه!`)
                     .setFooter({ text: `طلب بواسطة: ${interaction.user.tag}` });
 
                 return interaction.editReply({ embeds: [musicEmbed], components: [row1, row2] });
             } catch (err) {
-                console.error('Music Play Error:', err);
-                return interaction.editReply('⚠️ حدث خطأ في السيرفر المستضيف (Render IP Blocked). يرجى استخدام **رابط يوتيوب مباشر** حصراً لتجاوز الحماية.');
+                console.error('Audio Error:', err);
+                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي. تأكد من صحة الرابط المباشر.');
             }
-        }    
-        
-        
+        }
         // الألعاب
         if (commandName === 'كت') {
             const cutTweets = ['لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟', 'وش أكثر صفه تكرهها بالشخص اللي قدامك؟'];
