@@ -1,6 +1,7 @@
 {
-  "name": "discord-bot",
-  "version": "1.0.0",
+  "name": "master-discord-bot",
+  "version": "2.0.0",
+  "description": "Comprehensive Discord Bot with Moderation, Music, Games, and Dashboard",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,6 +11,7 @@
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "libsodium-wrappers": "^0.7.15"
+    "libsodium-wrappers": "^0.7.15",
+    "play-dl": "^1.9.7"
   }
 }
