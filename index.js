@@ -122,7 +122,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [profileEmbed] });
         }
 
-// لوحة الموسيقى المحدثة لتشغيل الروابط المباشرة وصاوندكلاود
+// لوحة الموسيقى المدعومة بالبحث عبر ساوندكلاود
         if (commandName === 'play') {
             const query = interaction.options.getString('query');
             const voiceChannel = interaction.member.voice.channel;
@@ -139,16 +139,23 @@ client.on('interactionCreate', async interaction => {
                     adapterCreator: interaction.guild.voiceAdapterCreator,
                 });
 
-                // التحقق من أن المدخل رابط مباشر أو دعم ساوندكلاود/روابط الصوت
                 let streamUrl = query;
+                let trackTitle = query;
+
+                // إذا لم يكن رابطاً، سنقوم بالبحث عنه عبر ساوندكلاود تلقائياً
                 if (!query.startsWith('http')) {
-                    return interaction.editReply('❌ عذراً، البحث النصي محظور. يرجى إدخال **رابط صوتي مباشر (MP3)** أو رابط **SoundCloud** لتشغيله بنجاح.');
+                    const searchResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 }).catch(() => null);
+                    if (!searchResults || searchResults.length === 0) {
+                        return interaction.editReply('❌ لم يتم العثور على نتائج في ساوندكلاود بهذا الاسم. جرب اسمًا آخر.');
+                    }
+                    streamUrl = searchResults[0].url;
+                    trackTitle = searchResults[0].title;
                 }
 
-                // استخدام play-dl للروابط الداعمة غير يوتيوب أو الروابط المباشرة
-                const stream = await play.stream(query).catch(() => null);
+                // جلب البث الصوتي
+                const stream = await play.stream(streamUrl).catch(() => null);
                 if (!stream) {
-                    return interaction.editReply('⚠️ تعذر تشغيل هذا الرابط. تأكد أنه رابط صوتي مباشر (مثل MP3) أو من منصة مدعومة.');
+                    return interaction.editReply('⚠️ تعذر تشغيل هذا المسار الصوتي. جرب أغنية أخرى.');
                 }
 
                 const resource = createAudioResource(stream.stream, { inputType: stream.type });
@@ -170,15 +177,15 @@ client.on('interactionCreate', async interaction => {
                 );
 
                 const musicEmbed = new EmbedBuilder()
-                    .setColor('#10b981')
-                    .setTitle('🎶 Panel de música / لوحة الموسيقى')
-                    .setDescription(`جاري تشغيل الصوت المباشر بنجاح!\n\nتحكم بالأغنية عبر الأزرار أدناه!`)
+                    .setColor('#ff5500') // لون ساوندكلاود المميز
+                    .setTitle('🎶 SoundCloud Music Panel')
+                    .setDescription(`جاري تشغيل: **${trackTitle}**\n\nتحكم بالأغنية عبر الأزرار أدناه!`)
                     .setFooter({ text: `طلب بواسطة: ${interaction.user.tag}` });
 
                 return interaction.editReply({ embeds: [musicEmbed], components: [row1, row2] });
             } catch (err) {
-                console.error('Audio Error:', err);
-                return interaction.editReply('⚠️ حدث خطأ أثناء تشغيل الملف الصوتي. تأكد من صحة الرابط المباشر.');
+                console.error('SoundCloud Error:', err);
+                return interaction.editReply('⚠️ حدث خطأ أثناء البحث أو تشغيل الصوت. تأكد من صحة الاسم أو الرابط.');
             }
         }
         // الألعاب
