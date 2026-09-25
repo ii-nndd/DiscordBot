@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const express = require('express');
 const dotenv = require('dotenv');
 
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
         <html style="background:#0f172a; color:#f8fafc; font-family:sans-serif; text-align:center; padding-top:50px;">
             <h1>🤖 Master Discord Bot Dashboard</h1>
             <p>Status: <span style="color:#22c55e;">Online & Operational 24/7</span></p>
+            <p>Voice 24/7: Active</p>
             <p>Owned by Arthur</p>
         </html>
     `);
@@ -30,6 +32,7 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 
 const OWNER_ID = process.env.OWNER_ID || ""; 
+const VOICE_CHANNEL_ID = process.env.CHANNEL_ID || "";
 const streaks = new Map();
 
 const commands = [
@@ -49,7 +52,41 @@ const commands = [
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('Managing Servers | /ping');
+    client.user.setActivity('24/7 Voice & Moderation | /ping');
+
+    // دالة الدخول التلقائي للروم الصوتي والبقاء فيه للأبد
+    if (VOICE_CHANNEL_ID) {
+        const channel = await client.channels.fetch(VOICE_CHANNEL_ID).catch(() => null);
+        if (channel && channel.isVoiceBased()) {
+            try {
+                const connection = joinVoiceChannel({
+                    channelId: channel.id,
+                    guildId: channel.guild.id,
+                    adapterCreator: channel.guild.voiceAdapterCreator,
+                    selfDeaf: false,
+                    selfMute: true
+                });
+
+                connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                    try {
+                        await Promise.race([
+                            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                        ]);
+                    } catch (error) {
+                        connection.destroy();
+                        setTimeout(() => connectToVoice(), 5000);
+                    }
+                });
+
+                console.log(`Successfully joined voice channel: ${channel.name} 24/7!`);
+            } catch (error) {
+                console.error('Failed to join voice channel:', error);
+            }
+        } else {
+            console.log('⚠️ Voice Channel ID is invalid or bot cannot find the channel.');
+        }
+    }
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
