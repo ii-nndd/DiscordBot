@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 const express = require('express');
 const dotenv = require('dotenv');
 const play = require('play-dl');
@@ -16,7 +16,6 @@ const client = new Client({
     ]
 });
 
-// خادم الويب للداشبورد والإبقاء 24/7
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,7 +24,7 @@ app.get('/', (req, res) => {
         <html style="background:#0f172a; color:#f8fafc; font-family:sans-serif; text-align:center; padding-top:50px;">
             <h1>🤖 ND • ARTHUR BOT - Master Dashboard</h1>
             <p>Status: <span style="color:#22c55e;">Online & Operational 24/7</span></p>
-            <p>Music Panel & Voice 24/7: Active</p>
+            <p>Music Panel & Games Suite: Active</p>
             <p>Owned by Arthur</p>
         </html>
     `);
@@ -36,11 +35,10 @@ app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
 const OWNER_ID = process.env.OWNER_ID || ""; 
 const VOICE_CHANNEL_ID = process.env.CHANNEL_ID || "";
 const streaks = new Map();
-const queue = [];
 let currentConnection = null;
 let audioPlayer = createAudioPlayer();
 
-// تسجيل الأوامر
+// تسجيل الأوامر الشاملة (الموسيقى + الألعاب + الإدارة)
 const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة استجابة البوت'),
     new SlashCommandBuilder().setName('profile').setDescription('عرض بطاقة بروفايلك والستريك الخاص بك'),
@@ -48,6 +46,13 @@ const commands = [
         .setName('play')
         .setDescription('تشغيل أغنية أو فتح لوحة الموسيقى التفاعلية')
         .addStringOption(option => option.setName('query').setDescription('اسم الأغنية أو رابط يوتيوب').setRequired(true)),
+    // الألعاب الفردية والمرح
+    new SlashCommandBuilder().setName('كت').setDescription('سؤال كت تويت عشوائي وممتع'),
+    new SlashCommandBuilder().setName('لغز').setDescription('حل اللغز واختبر ذكاءك'),
+    new SlashCommandBuilder().setName('رياضيات').setDescription('تحدي العمليات الحسابية السريعة'),
+    new SlashCommandBuilder().setName('عقاب').setDescription('عقاب عشوائي للمتحدي'),
+    new SlashCommandBuilder().setName('نکته').setDescription('اضحك مع نكتة جديدة'),
+    // أوامر الإدارة
     new SlashCommandBuilder()
         .setName('clear')
         .setDescription('مسح عدد معين من الرسائل (أدمن)')
@@ -56,15 +61,13 @@ const commands = [
         .setName('ban')
         .setDescription('حظر عضو من السيرفر (أدمن)')
         .addUserOption(option => option.setName('target').setDescription('العضو المراد حظره').setRequired(true)),
-    new SlashCommandBuilder().setName('flag-game').setDescription('بدء لعبة تخمين أعلام الدول'),
     new SlashCommandBuilder().setName('owner-panel').setDescription('لوحة التحكم الخاصة بمالك البوت فقط')
 ].map(cmd => cmd.toJSON());
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('🎵 Music & Moderation | /play');
+    client.user.setActivity('🎮 Games & Music | /play');
 
-    // الانضمام للروم الصوتي المخصص 24/7
     if (VOICE_CHANNEL_ID) {
         const channel = await client.channels.fetch(VOICE_CHANNEL_ID).catch(() => null);
         if (channel && channel.isVoiceBased()) {
@@ -86,13 +89,12 @@ client.once('ready', async () => {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
         await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-        console.log('Successfully registered all Slash Commands globally!');
+        console.log('Successfully registered all Master Bot commands globally!');
     } catch (error) {
         console.error('Error registering commands:', error);
     }
 });
 
-// نظام التفاعل والأوامر
 client.on('interactionCreate', async interaction => {
     if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
@@ -120,6 +122,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply({ embeds: [profileEmbed] });
         }
 
+        // لوحة الموسيقى
         if (commandName === 'play') {
             const query = interaction.options.getString('query');
             const voiceChannel = interaction.member.voice.channel;
@@ -147,7 +150,6 @@ client.on('interactionCreate', async interaction => {
                 audioPlayer.play(resource);
                 connection.subscribe(audioPlayer);
 
-                // بناء أزرار لوحة التحكم التفاعلية (Music Panel Buttons)
                 const row1 = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId('music_play').setLabel('Play').setStyle(ButtonStyle.Success).setEmoji('▶️'),
                     new ButtonBuilder().setCustomId('music_pause').setLabel('Pause').setStyle(ButtonStyle.Secondary).setEmoji('⏸️'),
@@ -174,6 +176,58 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
+        // قسم الألعاب والترفيه
+        if (commandName === 'كت') {
+            const cutTweets = [
+                'لو عندك قدرة تمسح سنة من حياتك مقابل مليون دولار، توافق؟',
+                'وش أكثر صفه تكرهها بالشخص اللي قدامك؟',
+                'لو خيروك تعيش بدون إنترنت أو بدون أصدقاء لمدة شهر، وش تختار؟',
+                'كلمة تقولها لنفسك قبل النوم دائماً؟'
+            ];
+            const randomCut = cutTweets[Math.floor(Math.random() * cutTweets.length)];
+            const embed = new EmbedBuilder().setColor('#ff7675').setTitle('🎯 كت تويت').setDescription(randomCut);
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'لغز') {
+            const riddles = [
+                { q: 'شيء يرفع شيئاً ثقيلاً ومع ذلك لا يقدر على مسمار؟', a: 'البحر' },
+                { q: 'ما هو البيت الذي ليس فيه أبواب ولا وخزات ولا أثاث؟', a: 'بيت الشعر' }
+            ];
+            const r = riddles[Math.floor(Math.random() * riddles.length)];
+            const embed = new EmbedBuilder().setColor('#fdcb6e').setTitle('🧩 لعبة الألغاز').setDescription(`**اللغز:** ${r.q}\n\n*(فكّر جيداً واكتب الإجابة بالأسفل!)*`);
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'رياضيات') {
+            const num1 = Math.floor(Math.random() * 20) + 1;
+            const num2 = Math.floor(Math.random() * 20) + 1;
+            const embed = new EmbedBuilder().setColor('#0984e3').setTitle('🧮 تحدي الرياضيات').setDescription(`كم الناتج السريع لـ: **${num1} × ${num2}**؟\n\n*(أسرع شخص يكتب الإجابة بالشات يربح نقطة!)*`);
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'عقاب') {
+            const forfeits = [
+                'عقابك: غيّر اسمك في الديسكورد إلى "طباخ بطاطس" لمدة ساعة!',
+                'عقابك: أرسل آخر صورة في جهازك في الشات العام بدون تحيز!',
+                'عقابك: امدح شخص في السيرفر بكلمات غزل مضحكة!'
+            ];
+            const f = forfeits[Math.floor(Math.random() * forfeits.length)];
+            const embed = new EmbedBuilder().setColor('#d63031').setTitle('🎲 عقاب عشوائي').setDescription(f);
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        if (commandName === 'نکته') {
+            const jokes = [
+                'واحد محشش يزرع مسمار بالارض ليش؟ يبي ي طلع شجرة سياكل!',
+                'مرة قروي دخل مكدونالدز قال: عندكم وجبة أطفال؟ قالوا: أيوه، قال: طيب عطوني واحد طفل جعان!',
+            ];
+            const j = jokes[Math.floor(Math.random() * jokes.length)];
+            const embed = new EmbedBuilder().setColor('#e17055').setTitle('😂 نكتة سريعة').setDescription(j);
+            return interaction.reply({ embeds: [embed] });
+        }
+
+        // أوامر الإدارة
         if (commandName === 'clear') {
             if (!interaction.member.permissions.has('ManageMessages')) {
                 return interaction.reply({ content: '❌ ليس لديك صلاحية مسح الرسائل!', ephemeral: true });
@@ -196,11 +250,10 @@ client.on('interactionCreate', async interaction => {
             if (interaction.user.id !== OWNER_ID) {
                 return interaction.reply({ content: '🔒 هذا الأمر مخصص لمالك البوت فقط!', ephemeral: true });
             }
-            return interaction.reply({ content: '👑 أهلاً بك يا مالك السيرفر والبووت! مركز التحكم الكامل جاهز.', ephemeral: true });
+            return interaction.reply({ content: '👑 أهلاً بك يا مالك السيرفر! جميع أنظمة التحكم والألعاب مفعلة وجاهزة.', ephemeral: true });
         }
     } 
     
-    // التعامل مع ضغطات أزرار لوحة الموسيقى
     else if (interaction.isButton()) {
         const { customId } = interaction;
         if (customId === 'music_pause') {
@@ -213,7 +266,7 @@ client.on('interactionCreate', async interaction => {
         }
         if (customId === 'music_stop') {
             audioPlayer.stop();
-            return interaction.reply({ content: '⏹️ تم إيقاف وتشغيل تفريغ مشغل الموسيقى.', ephemeral: true });
+            return interaction.reply({ content: '⏹️ تم إيقاف مشغل الموسيقى وتفريغه.', ephemeral: true });
         }
         if (customId === 'music_disconnect') {
             if (currentConnection) currentConnection.destroy();
