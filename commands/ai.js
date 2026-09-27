@@ -32,8 +32,8 @@ module.exports = {
 
             await interaction.editReply(replyText);
         } catch (error) {
-            console.error(error);
-            await interaction.editReply('❌ حدث خطأ أثناء الاتصال بالذكاء الاصطناعي. تأكد من مفتاح GEMINI_API_KEY في Render.');
+            console.error("AI Error Details:", error);
+            await interaction.editReply('❌ حدث خطأ داخلي أثناء محاولة الاتصال بالذكاء الاصطناعي.');
         }
     },
 };
