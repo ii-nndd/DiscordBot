@@ -1,18 +1,18 @@
 {
-  "name": "discord-gemini-bot",
+  "name": "discord-voice-bot",
   "version": "1.0.0",
-  "description": "Discord Bot with Gemini AI and Voice capabilities",
+  "description": "Discord Voice Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.9.0",
-    "@discordjs/voice": "^0.16.1",
-    "@google/genai": "^0.1.1",
-    "discord.js": "^14.14.1",
-    "dotenv": "^16.4.1",
-    "express": "^4.18.2",
-    "opusscript": "^0.1.1"
+    "@discordjs/opus": "latest",
+    "@discordjs/rest": "latest",
+    "@discordjs/voice": "latest",
+    "discord.js": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "opusscript": "latest"
   }
 }
