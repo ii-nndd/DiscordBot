@@ -23,7 +23,7 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates, // مهمة جداً عشان الرومات الصوتية والبوتات اللي تدخل الروم
+        GatewayIntentBits.GuildVoiceStates, // مهمة جداً للرومات الصوتية
     ]
 });
 
@@ -45,7 +45,8 @@ client.once('ready', async () => {
     const commands = [];
     client.commands.forEach(cmd => commands.push(cmd.data.toJSON()));
 
-    const token = process.env.TOKEN;
+    // استخدام DISCORD_TOKEN المخصص حقك
+    const token = process.env.DISCORD_TOKEN || process.env.TOKEN;
     if (!token) {
         console.error("❌ الخطأ: توكن البوت غير موجود في Environment Variables في ريندر!");
         return;
@@ -66,7 +67,7 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand())return;
+    if (!interaction.isChatInputCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
@@ -81,5 +82,5 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// تسجيل الدخول بالتوكن المحفوظ بأمان في ريندر
-client.login(process.env.TOKEN);
+// تسجيل الدخول باستخدام DISCORD_TOKEN
+client.login(process.env.DISCORD_TOKEN || process.env.TOKEN);
