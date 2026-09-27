@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// إعداد سيرفر الويب (لوالدك Dashboard/Render)
+// إعداد سيرفر الويب لريندر عشان يبقى البوت شغال
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -17,19 +17,20 @@ app.listen(PORT, () => {
     console.log(`🌐 Web server is running on port ${PORT}`);
 });
 
-// إعداد عميل ديسكورد (Discord Client)
+// إعداد عميل ديسكورد مع صلاحيات الرومات الصوتية والرسائل
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates, // مهمة جداً عشان الرومات الصوتية والبوتات اللي تدخل الروم
     ]
 });
 
 client.commands = new Collection();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// تحميل أمر الذكاء الاصطناعي من مجلد commands
+// تحميل الأوامر
 const aiCommandPath = path.join(__dirname, 'commands', 'ai.js');
 if (fs.existsSync(aiCommandPath)) {
     const aiCommand = require(aiCommandPath);
@@ -41,11 +42,16 @@ if (fs.existsSync(aiCommandPath)) {
 client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}!`);
 
-    // تسجيل أوامر السلاش تلقائياً في ديسكورد
     const commands = [];
     client.commands.forEach(cmd => commands.push(cmd.data.toJSON()));
 
-    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+    const token = process.env.TOKEN;
+    if (!token) {
+        console.error("❌ الخطأ: توكن البوت غير موجود في Environment Variables في ريندر!");
+        return;
+    }
+
+    const rest = new REST({ version: '10' }).setToken(token);
 
     try {
         console.log('Started refreshing application (/) commands.');
@@ -59,9 +65,8 @@ client.once('ready', async () => {
     }
 });
 
-// التعامل مع تنفيذ الأوامر
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand())return;
 
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
@@ -70,14 +75,11 @@ client.on('interactionCreate', async interaction => {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        const errorMessage = '❌ حدث خطأ أثناء تنفيذ هذا الأمر.';
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: errorMessage, ephemeral: true });
-        } else {
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '❌ حدث خطأ أثناء تنفيذ هذا الأمر.', ephemeral: true });
         }
     }
 });
 
-// تسجيل الدخول بالبوت
+// تسجيل الدخول بالتوكن المحفوظ بأمان في ريندر
 client.login(process.env.TOKEN);
