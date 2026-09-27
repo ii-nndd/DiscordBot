@@ -1,6 +1,9 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, REST, Routes, SlashCommandBuilder, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, Collection, ChannelType } = require('discord.js');
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const dotenv = require('dotenv');
+const { GoogleGenAI } = require('@google/genai');
 
 dotenv.config();
 
@@ -14,19 +17,36 @@ const client = new Client({
     ]
 });
 
+// تهيئة ذكاء جوجل (Gemini)
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+client.commands = new Collection();
+const commandsArray = [];
+
+// نظام الأوامر التلقائي
+const commandsPath = path.join(__dirname, 'commands');
+if (fs.existsSync(commandsPath)) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        const command = require(filePath);
+        if ('data' in command && 'execute' in command) {
+            client.commands.set(command.data.name, command);
+            commandsArray.push(command.data.toJSON());
+        }
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const OWNER_ID = process.env.OWNER_ID || ""; 
-const VOICE_CHANNEL_ID = process.env.CHANNEL_ID || "";
-
-// لوحة التحكم (Dashboard) الثابتة بستايل لونا بوت الفخم
+// الداشبورد الفخم
 app.get('/', (req, res) => {
     const guild = client.guilds.cache.first();
-    const guildName = guild ? guild.name : "Arthur's Private Vibe";
+    const guildName = guild ? guild.name : "Arthur & Joud Private Vibe";
     const memberCount = guild ? guild.memberCount : 2;
     const botPing = client.ws.ping;
 
@@ -40,7 +60,7 @@ app.get('/', (req, res) => {
                 body { background: #0b0f19; color: #f8fafc; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
                 .sidebar { width: 260px; background: #111827; border-left: 1px solid #1f2937; display: flex; flex-direction: column; padding: 20px; }
                 .logo { font-size: 20px; font-weight: bold; color: #ec4899; margin-bottom: 30px; text-align: center; }
-                .menu-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; color: #9ca3af; cursor: pointer; text-decoration: none; display: block; font-size: 14px; background: #1f2937; color: #fff; text-align: center; font-weight: bold; }
+                .menu-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; color: #9ca3af; text-decoration: none; display: block; font-size: 14px; background: #1f2937; color: #fff; text-align: center; font-weight: bold; }
                 .main-content { flex: 1; padding: 40px; overflow-y: auto; background: #0b0f19; }
                 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #1f2937; padding-bottom: 20px; }
                 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
@@ -86,13 +106,6 @@ app.get('/', (req, res) => {
                         <button type="submit">➕ إنشاء روم كتابي وصوتي</button>
                     </form>
                 </div>
-
-                <div class="panel-section">
-                    <h2>🧹 تنظيف المحادثات</h2>
-                    <form action="/clear-chat" method="POST">
-                        <button type="submit" style="background:#ef4444;">مسح آخر 20 رسالة من الشات</button>
-                    </form>
-                </div>
             </div>
         </body>
         </html>
@@ -114,66 +127,58 @@ app.post('/create-room', async (req, res) => {
     res.redirect('/');
 });
 
-app.post('/clear-chat', async (req, res) => {
-    const guild = client.guilds.cache.first();
-    if (guild) {
-        const defaultChannel = guild.channels.cache.find(c => c.type === ChannelType.GuildText);
-        if (defaultChannel) await defaultChannel.bulkDelete(20, true).catch(() => {});
-    }
-    res.send(`<script>alert('تم مسح الرسائل بنجاح!'); window.location.href='/';</script>`);
-});
-
 app.listen(PORT, () => console.log(`Dashboard active on port ${PORT}`));
-
-// الأوامر الأساسية للبوت
-const commands = [
-    new SlashCommandBuilder().setName('ping').setDescription('فحص سرعة البوت'),
-    new SlashCommandBuilder().setName('help').setDescription('عرض الأوامر'),
-    new SlashCommandBuilder().setName('كت').setDescription('سؤال كت تويت رايق'),
-    new SlashCommandBuilder().setName('صراحة').setDescription('سؤال صراحة وجريء'),
-    new SlashCommandBuilder().setName('لطيف').setDescription('كلمة لطيفة تروق المزاج'),
-].map(cmd => cmd.toJSON());
 
 client.once('ready', async () => {
     console.log(`Bot logged in as ${client.user.tag}!`);
-    if (VOICE_CHANNEL_ID) {
-        const channel = await client.channels.fetch(VOICE_CHANNEL_ID).catch(() => null);
-        if (channel && channel.isVoiceBased()) {
-            try {
-                const { joinVoiceChannel } = require('@discordjs/voice');
-                joinVoiceChannel({
-                    channelId: channel.id,
-                    guildId: channel.guild.id,
-                    adapterCreator: channel.guild.voiceAdapterCreator,
-                    selfDeaf: false,
-                    selfMute: true
-                });
-            } catch (error) {}
-        }
-    }
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
-        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+        await rest.put(Routes.applicationCommands(client.user.id), { body: commandsArray });
     } catch (error) {}
 });
 
+// التعامل مع أوامر السلاش العادية
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
-    const { commandName } = interaction;
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
 
-    if (commandName === 'ping') return interaction.reply({ content: `🏓 Pong: ${client.ws.ping}ms`, ephemeral: true });
-    if (commandName === 'help') return interaction.reply({ content: '📜 أهلاً بك يا أرثر! استخدم موقعك على Render (الداشبورد) للتحكم الكامل بسيرفرك.', ephemeral: true });
-    if (commandName === 'كت') {
-        const cut = ['أكثر صفة تعجبك في الشخص اللي جالس معك الحين؟', 'وش أكثر شيء تفضل تسوونه مع بعض بالسيرفر؟'][Math.floor(Math.random() * 2)];
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor('#ff7675').setTitle('🎯 كت تويت').setDescription(cut)] });
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        await interaction.reply({ content: 'حدث خطأ!', ephemeral: true });
     }
-    if (commandName === 'صراحة') {
-        const truth = ['متى آخر مرة ضحكت من قلبك بسبب شخص معك بالسيرفر؟', 'وش أكثر كلمة يقولها وتترك أثر حلو في خاطرك؟'][Math.floor(Math.random() * 2)];
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor('#e84393').setTitle('💬 صراحة').setDescription(truth)] });
-    }
-    if (commandName === 'لطيف') {
-        const sweet = ['✨ وجود الأشخاص اللطيفين بحياتنا يخلي الأيام أبسط وأجمل بكثير.', '☕ روقان القعدة مع ناس تفهمك يسوى الدنيا وما فيها!'][Math.floor(Math.random() * 2)];
-        return interaction.reply({ embeds: [new EmbedBuilder().setColor('#00b894').setTitle('🍃 لقطة لطيفة').setDescription(sweet)] });
+});
+
+// 🤖 هنا الشات التلقائي بدون سلاشات في أي روم اسمه "ai-chat" أو "سوالف"
+client.on('messageCreate', async message => {
+    if (message.author.bot) return; // لا ترد على البوتات نفسها
+
+    // تحقق إذا كان اسم الروم يحتوي على كلمة "ai-chat" أو "سوالف"
+    if (message.channel.name.includes('ai-chat') || message.channel.name.includes('سوالف')) {
+        const username = message.author.username;
+        const userMessage = message.content;
+
+        // إظهار علامة "جاري الكتابة..."
+        await message.channel.sendTyping();
+
+        try {
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: `المستخدم الذي يكلمك الآن في السيرفر هو ${username} (وهو جزء من سيرفر Arthur و Joud الخاص). رد عليه بلغة لطيفة وودودة وبدون تكلف: ${userMessage}`,
+            });
+
+            const replyText = response.text || "هلا والله، ما فهمت قصدك زين؟";
+            
+            if (replyText.length > 2000) {
+                return message.reply(replyText.substring(0, 1999));
+            }
+
+            await message.reply(replyText);
+        } catch (error) {
+            console.error(error);
+            await message.reply('❌ صار فيه مشكلة بالاتصال بالذكاء الاصطناعي.');
+        }
     }
 });
 
