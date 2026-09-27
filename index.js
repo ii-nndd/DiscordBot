@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
+const { joinVoiceChannel } = require('@discordjs/voice');
 const express = require('express');
 require('dotenv').config();
 
@@ -20,12 +20,12 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates, // مهمة جداً للفويس
+        GatewayIntentBits.GuildVoiceStates, // مهمة جداً عشان يقدر يدخل الفويس
     ]
 });
 
-// حط آيدي الروم الصوتي هنا مباشرة بين القوسين
-const TARGET_VOICE_CHANNEL_ID = 'حط_آيدي_روم_الصوت_هنا';
+// آيدي الروم الصوتي حقك
+const TARGET_VOICE_CHANNEL_ID = '1552654973408514057';
 
 client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}!`);
