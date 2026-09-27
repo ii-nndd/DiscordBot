@@ -1,18 +1,15 @@
 {
-  "name": "discord-voice-bot",
+  "name": "discord-ai-bot",
   "version": "1.0.0",
-  "description": "Discord Voice Bot",
+  "description": "Discord AI Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@discordjs/opus": "latest",
-    "@discordjs/rest": "latest",
-    "@discordjs/voice": "latest",
+    "@google/genai": "latest",
     "discord.js": "latest",
     "dotenv": "latest",
-    "express": "latest",
-    "opusscript": "latest"
+    "express": "latest"
   }
 }
